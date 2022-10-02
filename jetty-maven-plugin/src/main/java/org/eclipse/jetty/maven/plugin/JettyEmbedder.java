@@ -311,7 +311,7 @@ public class JettyEmbedder extends AbstractLifeCycle
     {
         if (stopPort > 0 && stopKey != null)
         {
-            ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+            ShutdownMonitor monitor = server.getShutdownMonitor();
             monitor.setPort(stopPort);
             monitor.setKey(stopKey);
             monitor.setExitVm(exitVm);

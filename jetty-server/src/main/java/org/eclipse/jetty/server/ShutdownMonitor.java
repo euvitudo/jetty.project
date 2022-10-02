@@ -51,39 +51,24 @@ import org.eclipse.jetty.util.thread.ShutdownThread;
  */
 public class ShutdownMonitor
 {
-    // Implementation of safe lazy init, using Initialization on Demand Holder technique.
-    private static class Holder
+    public void register(LifeCycle... lifeCycles)
     {
-        static ShutdownMonitor instance = new ShutdownMonitor();
+        addLifeCycles(lifeCycles);
     }
 
-    public static ShutdownMonitor getInstance()
+    public void deregister(LifeCycle lifeCycle)
     {
-        return Holder.instance;
+        removeLifeCycle(lifeCycle);
     }
 
-    protected static void reset()
+    public boolean isRegistered(LifeCycle lifeCycle)
     {
-        Holder.instance = new ShutdownMonitor();
-    }
-
-    public static void register(LifeCycle... lifeCycles)
-    {
-        getInstance().addLifeCycles(lifeCycles);
-    }
-
-    public static void deregister(LifeCycle lifeCycle)
-    {
-        getInstance().removeLifeCycle(lifeCycle);
-    }
-
-    public static boolean isRegistered(LifeCycle lifeCycle)
-    {
-        return getInstance().containsLifeCycle(lifeCycle);
+        return containsLifeCycle(lifeCycle);
     }
 
     private final AutoLock.WithCondition _lock = new AutoLock.WithCondition();
     private final Set<LifeCycle> _lifeCycles = new LinkedHashSet<>();
+    private final ShutdownThread _shutdownThread = ShutdownThread.create();
     private boolean debug;
     private final String host;
     private int port;
@@ -99,7 +84,7 @@ public class ShutdownMonitor
      * <p>
      * Note: server socket will only listen on localhost, and a successful stop will issue a System.exit() call.
      */
-    private ShutdownMonitor()
+    public ShutdownMonitor()
     {
         this.debug = System.getProperty("DEBUG") != null;
         this.host = System.getProperty("STOP.HOST", "127.0.0.1");
@@ -107,6 +92,11 @@ public class ShutdownMonitor
         this.key = System.getProperty("STOP.KEY", null);
         //only change the default exitVm setting if STOP.EXIT is explicitly set
         this.exitVm = Boolean.valueOf(System.getProperty("STOP.EXIT", "true"));
+    }
+
+    protected ShutdownThread getShutdownThread()
+    {
+        return _shutdownThread;
     }
 
     private void addLifeCycles(LifeCycle... lifeCycles)
@@ -360,7 +350,7 @@ public class ShutdownMonitor
                         {
                             //Stop the lifecycles, only if they are registered with the ShutdownThread, only destroying if vm is exiting
                             debug("Performing stop command");
-                            stopLifeCycles(ShutdownThread::isRegistered, exitVm);
+                            stopLifeCycles(_shutdownThread::isRegistered, exitVm);
 
                             // Reply to client
                             debug("Informing client that we are stopped");
@@ -392,7 +382,7 @@ public class ShutdownMonitor
                         else if ("stopexit".equalsIgnoreCase(cmd))
                         {
                             debug("Performing stop and exit commands");
-                            stopLifeCycles(ShutdownThread::isRegistered, true);
+                            stopLifeCycles(_shutdownThread::isRegistered, true);
 
                             // Reply to client
                             debug("Informing client that we are stopped");

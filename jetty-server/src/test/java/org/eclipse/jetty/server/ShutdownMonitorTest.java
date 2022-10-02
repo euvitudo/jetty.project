@@ -23,6 +23,7 @@ import java.net.Socket;
 
 import org.eclipse.jetty.util.thread.ShutdownThread;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -33,16 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ShutdownMonitorTest
 {
-    @AfterEach
-    public void dispose()
-    {
-        ShutdownMonitor.reset();
-    }
-    
     @Test
     public void testPid() throws Exception
     {
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+        ShutdownMonitor monitor = new ShutdownMonitor();
         monitor.setPort(0);
         monitor.setExitVm(false);
         monitor.start();
@@ -72,7 +67,7 @@ public class ShutdownMonitorTest
     @Test
     public void testStatus() throws Exception
     {
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+        ShutdownMonitor monitor = new ShutdownMonitor();
         // monitor.setDebug(true);
         monitor.setPort(0);
         monitor.setExitVm(false);
@@ -102,7 +97,7 @@ public class ShutdownMonitorTest
     @Test
     public void testStartStopDifferentPortDifferentKey() throws Exception
     {
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+        ShutdownMonitor monitor = new ShutdownMonitor();
         // monitor.setDebug(true);
         monitor.setPort(0);
         monitor.setExitVm(false);
@@ -147,7 +142,7 @@ public class ShutdownMonitorTest
     public void testNoExitSystemProperty() throws Exception
     {
         System.setProperty("STOP.EXIT", "false");
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+        ShutdownMonitor monitor = new ShutdownMonitor();
         monitor.setPort(0);
         assertFalse(monitor.isExitVm());
         monitor.start();
@@ -158,8 +153,8 @@ public class ShutdownMonitorTest
             server.start();
 
             //shouldn't be registered for shutdown on jvm
-            assertTrue(ShutdownThread.isRegistered(server));
-            assertTrue(ShutdownMonitor.isRegistered(server));
+            assertTrue(server.getShutdownThread().isRegistered(server));
+            assertTrue(server.getShutdownMonitor().isRegistered(server));
 
             String key = monitor.getKey();
             int port = monitor.getPort();
@@ -170,8 +165,8 @@ public class ShutdownMonitorTest
             assertTrue(!monitor.isAlive());
             assertTrue(server.stopped);
             assertTrue(!server.destroyed);
-            assertTrue(!ShutdownThread.isRegistered(server));
-            assertTrue(!ShutdownMonitor.isRegistered(server));
+            assertTrue(!server.getShutdownThread().isRegistered(server));
+            assertTrue(!server.getShutdownMonitor().isRegistered(server));
         }
     }
     
@@ -180,7 +175,7 @@ public class ShutdownMonitorTest
     public void testExitVmDefault() throws Exception
     {
         //Test that the default is to exit
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+        ShutdownMonitor monitor = new ShutdownMonitor();
         monitor.setPort(0);
         assertTrue(monitor.isExitVm());
     }
@@ -191,7 +186,7 @@ public class ShutdownMonitorTest
     {
         //Test setting exit true
         System.setProperty("STOP.EXIT", "true");
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+        ShutdownMonitor monitor = new ShutdownMonitor();
         monitor.setPort(0);
         assertTrue(monitor.isExitVm());
     }
@@ -202,7 +197,7 @@ public class ShutdownMonitorTest
     {
         //Test setting exit false
         System.setProperty("STOP.EXIT", "false");
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+        ShutdownMonitor monitor = new ShutdownMonitor();
         monitor.setPort(0);
         assertFalse(monitor.isExitVm());
     }
@@ -211,7 +206,7 @@ public class ShutdownMonitorTest
     @Test
     public void testForceStopCommand() throws Exception
     {
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+        ShutdownMonitor monitor = new ShutdownMonitor();
         // monitor.setDebug(true);
         monitor.setPort(0);
         monitor.setExitVm(false);
@@ -222,8 +217,8 @@ public class ShutdownMonitorTest
             server.start();
 
             //shouldn't be registered for shutdown on jvm
-            assertTrue(!ShutdownThread.isRegistered(server));
-            assertTrue(ShutdownMonitor.isRegistered(server));
+            assertTrue(!server.getShutdownThread().isRegistered(server));
+            assertTrue(server.getShutdownMonitor().isRegistered(server));
 
             String key = monitor.getKey();
             int port = monitor.getPort();
@@ -234,27 +229,27 @@ public class ShutdownMonitorTest
             assertTrue(!monitor.isAlive());
             assertTrue(server.stopped);
             assertTrue(!server.destroyed);
-            assertTrue(!ShutdownThread.isRegistered(server));
-            assertTrue(!ShutdownMonitor.isRegistered(server));
+            assertTrue(!server.getShutdownThread().isRegistered(server));
+            assertTrue(!server.getShutdownMonitor().isRegistered(server));
         }
     }
 
     @Test
     public void testOldStopCommandWithStopOnShutdownTrue() throws Exception
     {
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
-        monitor.setPort(0);
-        monitor.setExitVm(false);
-        monitor.start();
-
         try (CloseableServer server = new CloseableServer())
         {
+            ShutdownMonitor monitor = server.getShutdownMonitor();
+            monitor.setPort(0);
+            monitor.setExitVm(false);
+            monitor.start();
+
             server.setStopAtShutdown(true);
             server.start();
 
             //should be registered for shutdown on exit
-            assertTrue(ShutdownThread.isRegistered(server));
-            assertTrue(ShutdownMonitor.isRegistered(server));
+            assertTrue(server.getShutdownThread().isRegistered(server));
+            assertTrue(server.getShutdownMonitor().isRegistered(server));
 
             String key = monitor.getKey();
             int port = monitor.getPort();
@@ -265,15 +260,15 @@ public class ShutdownMonitorTest
             assertTrue(!monitor.isAlive());
             assertTrue(server.stopped);
             assertTrue(!server.destroyed);
-            assertTrue(!ShutdownThread.isRegistered(server));
-            assertTrue(!ShutdownMonitor.isRegistered(server));
+            assertTrue(!server.getShutdownThread().isRegistered(server));
+            assertTrue(!server.getShutdownMonitor().isRegistered(server));
         }
     }
 
     @Test
     public void testOldStopCommandWithStopOnShutdownFalse() throws Exception
     {
-        ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+        ShutdownMonitor monitor = new ShutdownMonitor();
         // monitor.setDebug(true);
         monitor.setPort(0);
         monitor.setExitVm(false);
@@ -284,8 +279,8 @@ public class ShutdownMonitorTest
             server.setStopAtShutdown(false);
             server.start();
 
-            assertTrue(!ShutdownThread.isRegistered(server));
-            assertTrue(ShutdownMonitor.isRegistered(server));
+            assertTrue(!server.getShutdownThread().isRegistered(server));
+            assertTrue(server.getShutdownMonitor().isRegistered(server));
 
             String key = monitor.getKey();
             int port = monitor.getPort();
@@ -296,8 +291,8 @@ public class ShutdownMonitorTest
             assertTrue(!monitor.isAlive());
             assertTrue(!server.stopped);
             assertTrue(!server.destroyed);
-            assertTrue(!ShutdownThread.isRegistered(server));
-            assertTrue(ShutdownMonitor.isRegistered(server));
+            assertTrue(!server.getShutdownThread().isRegistered(server));
+            assertTrue(server.getShutdownMonitor().isRegistered(server));
         }
     }
 

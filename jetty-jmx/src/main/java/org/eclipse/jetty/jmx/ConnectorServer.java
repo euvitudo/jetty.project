@@ -67,6 +67,7 @@ public class ConnectorServer extends AbstractLifeCycle
     private int _rmiPort;
     private JMXConnectorServer _connectorServer;
     private Registry _registry;
+    private ShutdownThread _shutdownThread;
 
     /**
      * Constructs a ConnectorServer
@@ -111,6 +112,7 @@ public class ConnectorServer extends AbstractLifeCycle
         this._environment = environment == null ? new HashMap<>() : new HashMap<>(environment);
         this._objectName = objectName;
         this._sslContextFactory = sslContextFactory;
+        this._shutdownThread = ShutdownThread.create();
     }
 
     /**
@@ -202,7 +204,7 @@ public class ConnectorServer extends AbstractLifeCycle
             _rmiPort = _registryPort;
         _jmxURL = new JMXServiceURL(_jmxURL.getProtocol(), rmiHost, _rmiPort, urlPath);
 
-        ShutdownThread.register(0, this);
+        _shutdownThread.register(0, this);
 
         LOG.info("JMX URL: {}", _jmxURL);
     }
@@ -210,7 +212,7 @@ public class ConnectorServer extends AbstractLifeCycle
     @Override
     public void doStop() throws Exception
     {
-        ShutdownThread.deregister(this);
+        _shutdownThread.deregister(this);
         _connectorServer.stop();
         MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
         mbeanServer.unregisterMBean(new ObjectName(getObjectName()));

@@ -65,6 +65,7 @@ public class WebSocketClient extends ContainerLifeCycle implements WebSocketPoli
     private final SessionTracker sessionTracker = new SessionTracker();
     private final Configuration.ConfigurationCustomizer configurationCustomizer = new Configuration.ConfigurationCustomizer();
     private final WebSocketComponents components = new WebSocketComponents();
+    private final ShutdownThread shutdownThread;
     private boolean stopAtShutdown = false;
     private long _stopTimeout = Long.MAX_VALUE;
 
@@ -88,6 +89,7 @@ public class WebSocketClient extends ContainerLifeCycle implements WebSocketPoli
         frameHandlerFactory = new JettyWebSocketFrameHandlerFactory(this, components);
         sessionListeners.add(sessionTracker);
         addBean(sessionTracker);
+        shutdownThread = ShutdownThread.create();
     }
 
     public CompletableFuture<Session> connect(Object websocket, URI toUri) throws IOException
@@ -379,11 +381,11 @@ public class WebSocketClient extends ContainerLifeCycle implements WebSocketPoli
     {
         if (stop)
         {
-            if (!stopAtShutdown && !ShutdownThread.isRegistered(this))
-                ShutdownThread.register(this);
+            if (!stopAtShutdown && !shutdownThread.isRegistered(this))
+                shutdownThread.register(this);
         }
         else
-            ShutdownThread.deregister(this);
+            shutdownThread.deregister(this);
 
         stopAtShutdown = stop;
     }

@@ -71,6 +71,7 @@ public class JavaxWebSocketClientContainer extends JavaxWebSocketContainer imple
     protected WebSocketCoreClient coreClient;
     protected Function<WebSocketComponents, WebSocketCoreClient> coreClientFactory;
     private final JavaxWebSocketClientFrameHandlerFactory frameHandlerFactory;
+    private final ShutdownThread shutdownThread;
 
     public JavaxWebSocketClientContainer()
     {
@@ -99,6 +100,7 @@ public class JavaxWebSocketClientContainer extends JavaxWebSocketContainer imple
         super(components);
         this.coreClientFactory = coreClientFactory;
         this.frameHandlerFactory = new JavaxWebSocketClientFrameHandlerFactory(this);
+        this.shutdownThread = ShutdownThread.create();
     }
 
     protected HttpClient getHttpClient()
@@ -323,7 +325,7 @@ public class JavaxWebSocketClientContainer extends JavaxWebSocketContainer imple
             return;
         }
 
-        ShutdownThread.register(this);
+        shutdownThread.register(this);
         if (LOG.isDebugEnabled())
             LOG.debug("Shutdown registered with ShutdownThread");
     }
@@ -346,7 +348,7 @@ public class JavaxWebSocketClientContainer extends JavaxWebSocketContainer imple
         }
 
         // If not running in a server we need to de-register with the shutdown thread.
-        ShutdownThread.deregister(this);
+        shutdownThread.deregister(this);
     }
 
     private boolean addToContextHandler()

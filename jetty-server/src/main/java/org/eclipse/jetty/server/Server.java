@@ -88,6 +88,8 @@ public class Server extends HandlerWrapper implements Attributes
     private final AutoLock _dateLock = new AutoLock();
     private volatile DateField _dateField;
     private long _stopTimeout;
+    private ShutdownMonitor shutdownMonitor;
+    private ShutdownThread shutdownThread;
 
     public Server()
     {
@@ -130,6 +132,8 @@ public class Server extends HandlerWrapper implements Attributes
         _threadPool = pool != null ? pool : new QueuedThreadPool();
         addBean(_threadPool);
         addBean(_attributes);
+        shutdownMonitor = new ShutdownMonitor();
+        shutdownThread = shutdownMonitor.getShutdownThread();
         setServer(this);
     }
 
@@ -190,6 +194,16 @@ public class Server extends HandlerWrapper implements Attributes
         return _stopAtShutdown;
     }
 
+    protected ShutdownThread getShutdownThread()
+    {
+        return shutdownThread;
+    }
+
+    public ShutdownMonitor getShutdownMonitor()
+    {
+        return shutdownMonitor;
+    }
+
     /**
      * Set stop server at shutdown behaviour.
      *
@@ -208,11 +222,11 @@ public class Server extends HandlerWrapper implements Attributes
             {
                 //only register to stop if we're already started (otherwise we'll do it in doStart())
                 if (isStarted())
-                    ShutdownThread.register(this);
+                    shutdownThread.register(this);
             }
         }
         else
-            ShutdownThread.deregister(this);
+            shutdownThread.deregister(this);
 
         _stopAtShutdown = stop;
     }
@@ -369,14 +383,14 @@ public class Server extends HandlerWrapper implements Attributes
             //If the Server should be stopped when the jvm exits, register
             //with the shutdown handler thread.
             if (getStopAtShutdown())
-                ShutdownThread.register(this);
+                shutdownThread.register(this);
 
             //Register the Server with the handler thread for receiving
             //remote stop commands
-            ShutdownMonitor.register(this);
+            shutdownMonitor.register(this);
 
             //Start a thread waiting to receive "stop" commands.
-            ShutdownMonitor.getInstance().start(); // initialize
+            shutdownMonitor.start(); // initialize
 
             String gitHash = Jetty.GIT_HASH;
             String timestamp = Jetty.BUILD_TIMESTAMP;
@@ -522,11 +536,11 @@ public class Server extends HandlerWrapper implements Attributes
         }
 
         if (getStopAtShutdown())
-            ShutdownThread.deregister(this);
+            shutdownThread.deregister(this);
 
         //Unregister the Server with the handler thread for receiving
         //remote stop commands as we are stopped already
-        ShutdownMonitor.deregister(this);
+        shutdownMonitor.deregister(this);
 
         mex.ifExceptionThrow();
     }

@@ -497,7 +497,7 @@ public class Runner
                 break;
 
             case 3:
-                ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+                ShutdownMonitor monitor = _server.getShutdownMonitor();
                 monitor.setPort(stopPort);
                 monitor.setKey(stopKey);
                 monitor.setExitVm(true);

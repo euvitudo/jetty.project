@@ -43,7 +43,7 @@ public class TestJettyStopMojo
         {
             try
             {
-                ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+                ShutdownMonitor monitor = new ShutdownMonitor();
                 monitor.setPort(0);
                 monitor.start();
                 monitor.await();

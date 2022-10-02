@@ -352,7 +352,7 @@ public class ServerProxyImpl implements ServerProxy
 
         if (stopPort > 0 && stopKey != null)
         {
-            ShutdownMonitor monitor = ShutdownMonitor.getInstance();
+            ShutdownMonitor monitor = server.getShutdownMonitor();
             monitor.setPort(stopPort);
             monitor.setKey(stopKey);
             monitor.setExitVm(false);
